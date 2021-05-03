@@ -385,7 +385,7 @@ assign CAS_ram_wren = ioctl_wr && ioctl_isCAS;
 
 //17 128
 //18 256
-spram #(13) CAS_ram
+spram #(14) CAS_ram
 (
 	.clock(clk_sys),
 	.cs(CAS_ram_cs),
