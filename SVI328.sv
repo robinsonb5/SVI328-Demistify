@@ -134,7 +134,7 @@ wire        forced_scandoubler;
 wire [21:0] gamma_bus;
 wire [10:0] PS2Keys;
  
-mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(50)) mist_io
+mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(100)) mist_io
 (
 	.SPI_SCK   (SPI_SCK),
    .CONF_DATA0(CONF_DATA0),
