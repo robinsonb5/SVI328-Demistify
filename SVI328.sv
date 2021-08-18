@@ -43,7 +43,9 @@ module SVI328
         output        VGA_HS,
         output        VGA_VS,
         output        AUDIO_L,
-        output        AUDIO_R,  
+        output        AUDIO_R, 
+		  output [10:0] DAC_L, 
+		  output [10:0] DAC_R, 
         input         TAPE_IN,
         input         UART_RXD,
         output        UART_TXD,
@@ -100,7 +102,6 @@ wire pll_locked;
 pll pll
 (
 	.inclk0(CLOCK_27),
-	.areset(0),
 	.c0(clk_sys),
 	.locked(pll_locked)
 );
@@ -133,7 +134,7 @@ wire        forced_scandoubler;
 wire [21:0] gamma_bus;
 wire [10:0] PS2Keys;
  
-mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io
+mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(50)) mist_io
 (
 	.SPI_SCK   (SPI_SCK),
    .CONF_DATA0(CONF_DATA0),
@@ -252,7 +253,7 @@ svi_mapper RamMapper
 
 ////////////////  Console  ////////////////////////
 
-wire [10:0] audio;
+//wire [10:0] audio;
 
 dac #(10) dac_l (
    .clk_i        (clk_sys),
@@ -261,6 +262,8 @@ dac #(10) dac_l (
    .dac_o        (AUDIO_L)
 );
 
+assign DAC_L=audio;
+assign DAC_R=audio;
 assign AUDIO_R=AUDIO_L;
 
 assign CLK_VIDEO = clk_sys;
