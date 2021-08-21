@@ -18,7 +18,7 @@ more obvious application of disk images on computer cores */
 #define CONFIG_FILEBOOKMARKS 6
 
 /* Keyboard-based Joystick emulation */
-#define CONFIG_JOYKEYS
+#undef CONFIG_JOYKEYS
 
 /* Send key events via the mist_io block. If the core can support
    a PS/2 keyboard directly then that's probably a better option. */

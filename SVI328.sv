@@ -44,11 +44,12 @@ module SVI328
         output        VGA_VS,
         output        AUDIO_L,
         output        AUDIO_R, 
-		  output [10:0] DAC_L, 
-		  output [10:0] DAC_R, 
+		  output [9:0]  DAC_L, 
+		  output [9:0]  DAC_R, 
+		  output        CLK_SYS_OUT,
         input         TAPE_IN,
-        input         UART_RXD,
-        output        UART_TXD,
+        input         UART_RX,
+        output        UART_TX,
         input         SPI_SCK,
         output        SPI_DO,
         input         SPI_DI,
@@ -106,6 +107,7 @@ pll pll
 	.locked(pll_locked)
 );
 
+assign CLK_SYS_OUT = clk_sys;
 reg ce_10m7 = 0;
 reg ce_5m3 = 0;
 reg ce_21m3 = 0;
@@ -133,6 +135,8 @@ wire  [7:0] ioctl_dout;
 wire        forced_scandoubler;
 wire [21:0] gamma_bus;
 wire [10:0] PS2Keys;
+wire        ypbpr;
+
  
 mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(100)) mist_io
 (
@@ -253,7 +257,7 @@ svi_mapper RamMapper
 
 ////////////////  Console  ////////////////////////
 
-//wire [10:0] audio;
+wire [9:0] audio;
 
 dac #(10) dac_l (
    .clk_i        (clk_sys),
@@ -266,7 +270,8 @@ assign DAC_L=audio;
 assign DAC_R=audio;
 assign AUDIO_R=AUDIO_L;
 
-assign CLK_VIDEO = clk_sys;
+
+wire CLK_VIDEO = clk_sys;
 
 wire [7:0] R,G,B,ay_port_b;
 wire hblank, vblank;
@@ -366,7 +371,7 @@ video_mixer #(.LINE_LENGTH(290)) video_mixer
 /////////////////  Tape In   /////////////////////////
 
 wire tape_in;
-assign tape_in = UART_RXD;
+assign tape_in = UART_RX;
 
 
 ///////////// OSD CAS load //////////
