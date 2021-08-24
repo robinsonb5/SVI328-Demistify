@@ -4,10 +4,10 @@ use ieee.numeric_std.all;
 
 -- -----------------------------------------------------------------------
 
-entity neptuno_top is
+entity uareloaded_top is
 	port
 	(
-		clock_50_i	:	 IN STD_LOGIC;
+		CLOCK_50	:	 IN STD_LOGIC;
 		LED         :   OUT STD_LOGIC;
 		DRAM_CLK		:	 OUT STD_LOGIC;
 		DRAM_CKE		:	 OUT STD_LOGIC;
@@ -22,45 +22,42 @@ entity neptuno_top is
 		DRAM_RAS_N		:	 OUT STD_LOGIC;
 		VGA_HS		:	 OUT STD_LOGIC;
 		VGA_VS		:	 OUT STD_LOGIC;
-		VGA_R		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
-		VGA_G		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
-		VGA_B		:	 OUT STD_LOGIC_VECTOR(4 DOWNTO 0);
+		VGA_R		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		VGA_G		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		VGA_B		:	 OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
+		VGA_BLANK:   OUT STD_LOGIC;
+		VGA_CLOCK:   OUT STD_LOGIC;
 		-- AUDIO
 		SIGMA_R                     : OUT STD_LOGIC;
 		SIGMA_L                     : OUT STD_LOGIC;
-				-- I2S audio		
-		I2S_BCLK				: out   std_logic								:= '0';
-		I2S_LRCLK			: out   std_logic								:= '0';
-		I2S_DATA				: out   std_logic								:= '0';		
-      
-		-- JOYSTICK 
-		JOY_CLK				: out   std_logic;
-		JOY_LOAD 			: out   std_logic;
-		JOY_DATA 			: in    std_logic;
-		joyP7_o			   : out   std_logic								:= '1';
-
 		-- PS2
 		PS2_KEYBOARD_CLK            :    INOUT STD_LOGIC;
 		PS2_KEYBOARD_DAT            :    INOUT STD_LOGIC;
 		PS2_MOUSE_CLK               :    INOUT STD_LOGIC;
 		PS2_MOUSE_DAT               :    INOUT STD_LOGIC;
 		-- UART
-		AUDIO_INPUT                 : IN STD_LOGIC;
+		AUDIO_IN                    : IN STD_LOGIC;
 		--STM32
-      stm_rx_o            : out std_logic     := 'Z'; -- stm RX pin, so, is OUT on the slave
-      stm_tx_i            : in  std_logic     := 'Z'; -- stm TX pin, so, is IN on the slave
-      stm_rst_o           : out std_logic     := 'Z'; -- '0' to hold the microcontroller reset line, to free the SD card
-
+      STM_RST                     : out std_logic     := 'Z'; -- '0' to hold the microcontroller reset line, to free the SD card
+      -- I2S
+		SCLK                        : out std_logic;
+		SDIN                        : out std_logic;
+		MCLK                        : out std_logic := 'Z';
+		LRCLK                       : out std_logic;
+		-- Joystick
+		JOYSTICK1                   : in std_logic_vector (5 downto 0);
+		JOYSTICK2                   : in std_logic_vector (5 downto 0);
+		JOY_SELECT                  : out std_logic :='1';
 		-- SD Card
-		sd_cs_n_o                      : out   std_logic := '1';
-		sd_sclk_o                      : out   std_logic := '0';
-		sd_mosi_o                      : out   std_logic := '0';
-		sd_miso_i                      : in    std_logic
+		SD_CS                       : out   std_logic := '1';
+		SD_SCK                      : out   std_logic := '0';
+		SD_MOSI                     : out   std_logic := '0';
+		SD_MISO                     : in    std_logic
 	
 	);
 END entity;
 
-architecture RTL of neptuno_top is
+architecture RTL of uareloaded_top is
    constant reset_cycles : integer := 131071;
 	
 -- System clocks
@@ -72,10 +69,10 @@ architecture RTL of neptuno_top is
 
 -- SPI signals
 
-	signal sd_clk : std_logic;
-	signal sd_cs : std_logic;
-	signal sd_mosi : std_logic;
-	signal sd_miso : std_logic;
+--	signal sd_clk : std_logic;
+--	signal sd_cs : std_logic;
+--	signal sd_mosi : std_logic;
+--	signal sd_miso : std_logic;
 	
 -- internal SPI signals
 	
@@ -119,10 +116,16 @@ architecture RTL of neptuno_top is
 	signal joyb : std_logic_vector(7 downto 0);
 	signal joyc : std_logic_vector(7 downto 0);
 	signal joyd : std_logic_vector(7 downto 0);
-
-   signal  DAC_L : std_logic_vector(9 downto 0);
-	signal  DAC_R : std_logic_vector(9 downto 0);
 	
+-- DAC
+   signal dac_l: signed(9 downto 0);
+   signal dac_r: signed(9 downto 0);
+	
+	signal dac_l_s: signed(15 downto 0);
+   signal dac_r_s: signed(15 downto 0);
+	
+	
+
 COMPONENT  SVI328
 	PORT
 	(
@@ -157,73 +160,21 @@ COMPONENT  SVI328
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
 		AUDIO_R  : out std_logic;
-		DAC_L    : out std_logic_vector(9 downto 0);
-	   DAC_R    : out std_logic_vector(9 downto 0)
-
+		DAC_L		: OUT SIGNED(9 DOWNTO 0);
+		DAC_R		: OUT SIGNED(9 DOWNTO 0)
+		
 	);
 END COMPONENT;
-component audio_top is
-Port ( 	
-		clk_50MHz : in STD_LOGIC; -- system clock (50 MHz)
-		dac_MCLK : out STD_LOGIC; -- outputs to PMODI2L DAC
-		dac_LRCK : out STD_LOGIC;
-		dac_SCLK : out STD_LOGIC;
-		dac_SDIN : out STD_LOGIC;
-		L_data : 	in std_logic_vector(15 downto 0);  	-- LEFT data (15-bit signed)
-		R_data : 	in std_logic_vector(15 downto 0)  	-- RIGHT data (15-bit signed) 
-);
-end component;	
-	signal audio_l_s			: std_logic_vector(15 downto 0);
-	signal audio_r_s			: std_logic_vector(15 downto 0);
 
-
-component joydecoder is
-Port ( 	
-		clk 			: in std_logic; 
-		joy_data    : in std_logic;
-		joy_clk		: out std_logic;
-		joy_load_n	: out std_logic;
-		joy1up		: out std_logic;
-		joy1down		: out std_logic;
-		joy1left		: out std_logic;
-		joy1right	: out std_logic;
-		joy1fire1	: out std_logic;
-		joy1fire2	: out std_logic;
-		joy2up		: out std_logic;
-		joy2down		: out std_logic;
-		joy2left		: out std_logic;
-		joy2right	: out std_logic;
-		joy2fire1	: out std_logic;
-		joy2fire2	: out std_logic
-);
-end component;
-
--- JOYSTICKS
-	signal joy1up			: std_logic								:= '1';
-	signal joy1down		: std_logic								:= '1';
-	signal joy1left		: std_logic								:= '1';
-	signal joy1right		: std_logic								:= '1';
-	signal joy1fire1		: std_logic								:= '1';
-	signal joy1fire2		: std_logic								:= '1';
-	signal joy2up			: std_logic								:= '1';
-	signal joy2down		: std_logic								:= '1';
-	signal joy2left		: std_logic								:= '1';
-	signal joy2right		: std_logic								:= '1';
-	signal joy2fire1		: std_logic								:= '1';
-	signal joy2fire2		: std_logic								:= '1';
-	signal clk_sys_out   : std_logic;
-	-- i2s 
-	signal i2s_mclk		    : std_logic;
-	
 begin
 
 
 -- SPI
 
-sd_cs_n_o<=sd_cs;
-sd_mosi_o<=sd_mosi;
-sd_miso<=sd_miso_i;
-sd_sclk_o<=sd_clk;
+--sd_cs_n_o<=sd_cs;
+--sd_mosi_o<=sd_mosi;
+--sd_miso<=sd_miso_i;
+--sd_sclk_o<=sd_clk;
 
 
 
@@ -239,66 +190,59 @@ ps2_keyboard_dat <= '0' when ps2_keyboard_dat_out='0' else 'Z';
 ps2_keyboard_clk_in<=ps2_keyboard_clk;
 ps2_keyboard_clk <= '0' when ps2_keyboard_clk_out='0' else 'Z';
 	
+JOY_SELECT<= '1';
+
+	
+joya<="11" & JOYSTICK1(5) & JOYSTICK1(4) & JOYSTICK1(0) & JOYSTICK1(1) & JOYSTICK1(2) &JOYSTICK1(3);
+joyB<="11" & JOYSTICK2(5) & JOYSTICK2(4) & JOYSTICK2(0) & JOYSTICK2(1) & JOYSTICK2(2) &JOYSTICK2(3);
+
+joyc<=(others=>'1');
+joyd<=(others=>'1');
+
+STM_RST <= '0';
+LED <= AUDIO_IN; --not ps2_keyboard_clk;
 
 
-joya<="11" & joy1fire2 & joy1fire1 & joy1right & joy1left & joy1down & joy1up;
-joyb<="11" & joy2fire2 & joy2fire1 & joy2right & joy2left & joy2down & joy2up;
-
-stm_rst_o <= '0';
-LED <= AUDIO_INPUT;
+pll_vga: entity work.pll_vga
+port map (
+     inclk0  => CLOCK_50,
+     c0      => VGA_CLOCK,     
+     locked  => open
+);
 
 --process(clk_sys)
 --begin
 --	if rising_edge(clk_sys) then
-		VGA_R<=vga_red(7 downto 3);
-		VGA_G<=vga_green(7 downto 3);
-		VGA_B<=vga_blue(7 downto 3);
+		VGA_R<=vga_red;
+		VGA_G<=vga_green;
+		VGA_B<=vga_blue;
 		VGA_HS<=vga_hsync;
 		VGA_VS<=vga_vsync;
+		VGA_BLANK<='1';
+		
 --	end if;
 --end process;
 
--- I2S audio
-	
-audio_i2s: entity work.audio_top
+---- I2S out
+
+i2s : entity work.audio_top
 port map(
-	clk_50MHz => clock_50_i,
-	dac_MCLK  => I2S_MCLK,
-	dac_LRCK  => I2S_LRCLK,
-	dac_SCLK  => I2S_BCLK,
-	dac_SDIN  => I2S_DATA,
-	L_data    => std_logic_vector(audio_l_s),
-	R_data    => std_logic_vector(audio_r_s)
-);		
+     clk_50MHz => clock_50,
+	  dac_MCLK  => MCLK,
+	  dac_SCLK  => SCLK,
+	  dac_SDIN  => SDIN,
+	  dac_LRCK  => LRCLK,
+	  L_data    => std_logic_vector (dac_l_s),
+	  R_data    => std_logic_vector (dac_r_s)
+);
 
-audio_l_s <= '0' & DAC_L & "00000";
-audio_r_s <= '0' & DAC_R & "00000";
+dac_l_s <= (dac_l & dac_l(9 downto 4));
+dac_r_s <= (dac_r & dac_r(9 downto 4));
 
-	-- JOYSTICKS
-joy: joydecoder
-	  port map (
-		clk				=> clock_50_i,
-		joy_clk			=> JOY_CLK,
-		joy_load_n 		=> JOY_LOAD,
-		joy_data			=> JOY_DATA,		
-		joy1up  			=> joy1up,
-		joy1down			=> joy1down,
-		joy1left			=> joy1left,
-		joy1right		=> joy1right,
-		joy1fire1		=> joy1fire1,
-		joy1fire2		=> joy1fire2,
-		joy2up  			=> joy2up,
-		joy2down			=> joy2down,
-		joy2left			=> joy2left,
-		joy2right		=> joy2right,
-		joy2fire1		=> joy2fire1,
-		joy2fire2		=> joy2fire2
-	);
-	
 guest: COMPONENT  SVI328
 	PORT map
 	(
-		CLOCK_27 => clock_50_i,
+		CLOCK_27 => CLOCK_50,
 		--RESET_N => reset_n,
 		-- clocks
 		SDRAM_DQ => DRAM_DQ,
@@ -314,7 +258,7 @@ guest: COMPONENT  SVI328
 		SDRAM_CKE => DRAM_CKE,
 		
 		UART_TX  => open,
-		UART_RX  => AUDIO_INPUT,
+		UART_RX  => not AUDIO_IN,
 		
 --		SPI_SD_DI => sd_miso,
 		SPI_DO => spi_fromguest,
@@ -333,12 +277,12 @@ guest: COMPONENT  SVI328
 		VGA_B => vga_blue(7 downto 2),
 		AUDIO_L => sigma_l,
 		AUDIO_R => sigma_r,
-		DAC_L   => DAC_L,
-		DAC_R   => DAC_R
+		DAC_L   => dac_l,
+		DAC_R   => dac_r
 );
 
 -- Pass internal signals to external SPI interface
-sd_clk <= spi_clk_int;
+sd_sck <= spi_clk_int;
 
 controller : entity work.substitute_mcu
 	generic map (
@@ -348,7 +292,7 @@ controller : entity work.substitute_mcu
 		
 	)
 	port map (
-		clk => clock_50_i,
+		clk => CLOCK_50,
 		reset_in =>  '1',
 		reset_out => reset_n,
 
@@ -375,11 +319,9 @@ controller : entity work.substitute_mcu
 		ps2m_dat_out => ps2_mouse_dat_out,
 
 		buttons => (others=>'1'),
-		
-		-- JOYSTICKS
+      -- joy
 		joy1 => joya,
 		joy2 => joyb,
-
 		-- UART
 		rxd => rs232_rxd,
 		txd => rs232_txd

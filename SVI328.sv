@@ -46,7 +46,6 @@ module SVI328
         output        AUDIO_R, 
 		  output [9:0]  DAC_L, 
 		  output [9:0]  DAC_R, 
-		  output        CLK_SYS_OUT,
         input         TAPE_IN,
         input         UART_RX,
         output        UART_TX,
@@ -107,7 +106,6 @@ pll pll
 	.locked(pll_locked)
 );
 
-assign CLK_SYS_OUT = clk_sys;
 reg ce_10m7 = 0;
 reg ce_5m3 = 0;
 reg ce_21m3 = 0;
@@ -393,7 +391,7 @@ assign CAS_ram_wren = ioctl_wr && ioctl_isCAS;
 
 //17 128
 //18 256
-spram #(14) CAS_ram
+spram #(16) CAS_ram
 (
 	.clock(clk_sys),
 	.cs(CAS_ram_cs),
