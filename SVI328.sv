@@ -405,9 +405,11 @@ spram #(16) CAS_ram
 assign play = ~motor;
 assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
 
+
 cassette CASReader(
 
-  .clk(ce_21m3), //  42.666/2
+  .clk(clk_sys), 
+  .Q(ce_21m3), //  42.666/2
   .play(play), 
   .rewind(rewind),
 
@@ -419,5 +421,4 @@ cassette CASReader(
   .status(CAS_status)
 
 );
-
 endmodule
