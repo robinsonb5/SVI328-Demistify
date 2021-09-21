@@ -43,10 +43,12 @@ module SVI328
         output        VGA_HS,
         output        VGA_VS,
         output        AUDIO_L,
-        output        AUDIO_R,  
+        output        AUDIO_R, 
+		output [15:0]  DAC_L, 
+		output [15:0]  DAC_R, 
         input         TAPE_IN,
-        input         UART_RXD,
-        output        UART_TXD,
+        input         UART_RX,
+        output        UART_TX,
         input         SPI_SCK,
         output        SPI_DO,
         input         SPI_DI,
@@ -100,7 +102,6 @@ wire pll_locked;
 pll pll
 (
 	.inclk0(CLOCK_27),
-	.areset(0),
 	.c0(clk_sys),
 	.locked(pll_locked)
 );
@@ -132,8 +133,10 @@ wire  [7:0] ioctl_dout;
 wire        forced_scandoubler;
 wire [21:0] gamma_bus;
 wire [10:0] PS2Keys;
+wire        ypbpr;
+
  
-mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io
+mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(100)) mist_io
 (
 	.SPI_SCK   (SPI_SCK),
    .CONF_DATA0(CONF_DATA0),
@@ -141,25 +144,25 @@ mist_io #(.STRLEN($size(CONF_STR)>>3)) mist_io
    .SPI_DO    (SPI_DO),
    .SPI_DI    (SPI_DI),
 
-	.clk_sys(clk_sys),
-	.conf_str(CONF_STR),
+   .clk_sys(clk_sys),
+   .conf_str(CONF_STR),
 
-	.buttons(buttons),
-	.status(status),
-	.scandoubler_disable(forced_scandoubler),
+   .buttons(buttons),
+   .status(status),
+   .scandoubler_disable(forced_scandoubler),
    .ypbpr     (ypbpr),
 	
-	.ioctl_ce(1),
-	.ioctl_download(ioctl_download),
-	.ioctl_index(ioctl_index),
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout),
+   .ioctl_ce(1),
+   .ioctl_download(ioctl_download),
+   .ioctl_index(ioctl_index),
+   .ioctl_wr(ioctl_wr),
+   .ioctl_addr(ioctl_addr),
+   .ioctl_dout(ioctl_dout),
 		
-	.ps2_key(PS2Keys),
+   .ps2_key(PS2Keys),
 	
-	.joystick_0(joy0), // HPS joy [4:0] {Fire, Up, Down, Left, Right}
-	.joystick_1(joy1)
+   .joystick_0(joy0), // HPS joy [4:0] {Fire, Up, Down, Left, Right}
+   .joystick_1(joy1)
 
 );
 
@@ -222,9 +225,9 @@ assign sdram_rd = ~(ram_rd_n | ram_ce_n);
 assign SDRAM_CLK = ~clk_sys;
 sdram sdram
 (
-	.*,
-	.init(~pll_locked),
-	.clk(clk_sys),
+   .*,
+   .init(~pll_locked),
+   .clk(clk_sys),
 
    .wtbt(0),
    .addr(sdram_addr), 
@@ -246,24 +249,27 @@ svi_mapper RamMapper
     .addr_i		(cpu_ram_a),
     .RegMap_i	(ay_port_b),
     .addr_o		(ram_a),
-	 .ram			(isRam)
+	.ram		(isRam)
 );
 
 
 ////////////////  Console  ////////////////////////
 
-wire [10:0] audio;
+wire [9:0] audio;
 
-dac #(10) dac_l (
+dac #(16) dac_l (
    .clk_i        (clk_sys),
    .res_n_i      (1      ),
-   .dac_i        (audio),
+   .dac_i        ({audio,6'b0}),
    .dac_o        (AUDIO_L)
 );
 
+assign DAC_L={audio,6'b0};
+assign DAC_R={audio,6'b0};
 assign AUDIO_R=AUDIO_L;
 
-assign CLK_VIDEO = clk_sys;
+
+wire CLK_VIDEO = clk_sys;
 
 wire [7:0] R,G,B,ay_port_b;
 wire hblank, vblank;
@@ -363,7 +369,7 @@ video_mixer #(.LINE_LENGTH(290)) video_mixer
 /////////////////  Tape In   /////////////////////////
 
 wire tape_in;
-assign tape_in = UART_RXD;
+assign tape_in = UART_RX;
 
 
 ///////////// OSD CAS load //////////
@@ -385,7 +391,7 @@ assign CAS_ram_wren = ioctl_wr && ioctl_isCAS;
 
 //17 128
 //18 256
-spram #(14) CAS_ram
+spram #(16) CAS_ram
 (
 	.clock(clk_sys),
 	.cs(CAS_ram_cs),
@@ -399,9 +405,11 @@ spram #(14) CAS_ram
 assign play = ~motor;
 assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
 
+
 cassette CASReader(
 
-  .clk(ce_21m3), //  42.666/2
+  .clk(clk_sys), 
+  .Q(ce_21m3), //  42.666/2
   .play(play), 
   .rewind(rewind),
 
@@ -413,5 +421,4 @@ cassette CASReader(
   .status(CAS_status)
 
 );
-
 endmodule

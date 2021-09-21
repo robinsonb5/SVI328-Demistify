@@ -36,3 +36,7 @@ c5_pin_model_dump.txt
 *~
 *.xml
 *.cdf
+firmware/*.o
+firmware/*.asm
+*.log
+
