@@ -44,8 +44,8 @@ module SVI328
         output        VGA_VS,
         output        AUDIO_L,
         output        AUDIO_R, 
-		  output [9:0]  DAC_L, 
-		  output [9:0]  DAC_R, 
+		output [15:0]  DAC_L, 
+		output [15:0]  DAC_R, 
         input         TAPE_IN,
         input         UART_RX,
         output        UART_TX,
@@ -144,25 +144,25 @@ mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(100)) mist_io
    .SPI_DO    (SPI_DO),
    .SPI_DI    (SPI_DI),
 
-	.clk_sys(clk_sys),
-	.conf_str(CONF_STR),
+   .clk_sys(clk_sys),
+   .conf_str(CONF_STR),
 
-	.buttons(buttons),
-	.status(status),
-	.scandoubler_disable(forced_scandoubler),
+   .buttons(buttons),
+   .status(status),
+   .scandoubler_disable(forced_scandoubler),
    .ypbpr     (ypbpr),
 	
-	.ioctl_ce(1),
-	.ioctl_download(ioctl_download),
-	.ioctl_index(ioctl_index),
-	.ioctl_wr(ioctl_wr),
-	.ioctl_addr(ioctl_addr),
-	.ioctl_dout(ioctl_dout),
+   .ioctl_ce(1),
+   .ioctl_download(ioctl_download),
+   .ioctl_index(ioctl_index),
+   .ioctl_wr(ioctl_wr),
+   .ioctl_addr(ioctl_addr),
+   .ioctl_dout(ioctl_dout),
 		
-	.ps2_key(PS2Keys),
+   .ps2_key(PS2Keys),
 	
-	.joystick_0(joy0), // HPS joy [4:0] {Fire, Up, Down, Left, Right}
-	.joystick_1(joy1)
+   .joystick_0(joy0), // HPS joy [4:0] {Fire, Up, Down, Left, Right}
+   .joystick_1(joy1)
 
 );
 
@@ -225,9 +225,9 @@ assign sdram_rd = ~(ram_rd_n | ram_ce_n);
 assign SDRAM_CLK = ~clk_sys;
 sdram sdram
 (
-	.*,
-	.init(~pll_locked),
-	.clk(clk_sys),
+   .*,
+   .init(~pll_locked),
+   .clk(clk_sys),
 
    .wtbt(0),
    .addr(sdram_addr), 
@@ -249,7 +249,7 @@ svi_mapper RamMapper
     .addr_i		(cpu_ram_a),
     .RegMap_i	(ay_port_b),
     .addr_o		(ram_a),
-	 .ram			(isRam)
+	.ram		(isRam)
 );
 
 
@@ -257,15 +257,15 @@ svi_mapper RamMapper
 
 wire [9:0] audio;
 
-dac #(10) dac_l (
+dac #(16) dac_l (
    .clk_i        (clk_sys),
    .res_n_i      (1      ),
-   .dac_i        (audio),
+   .dac_i        ({audio,6'b0}),
    .dac_o        (AUDIO_L)
 );
 
-assign DAC_L=audio;
-assign DAC_R=audio;
+assign DAC_L={audio,6'b0};
+assign DAC_R={audio,6'b0};
 assign AUDIO_R=AUDIO_L;
 
 

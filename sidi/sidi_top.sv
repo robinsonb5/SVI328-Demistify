@@ -55,12 +55,12 @@ module sidi_top (
    output [5:0]  VGA_R,
    output [5:0]  VGA_G,
    output [5:0]  VGA_B,
-   output [10:0] DAC_L,
-	output [10:0] DAC_R,
+   output [15:0] DAC_L,
+   output [15:0] DAC_R,
 	input      TAPE_IN,
 	
-   input     UART_RXD,
-   output    UART_TXD
+   input     UART_RX,
+   output    UART_TX
 );
 
 SVI328  guest

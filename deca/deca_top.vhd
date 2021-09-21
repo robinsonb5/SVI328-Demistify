@@ -140,8 +140,8 @@ COMPONENT  SVI328
 		SDRAM_CLK		:	 OUT STD_LOGIC;
 		SDRAM_CKE		:	 OUT STD_LOGIC;
 		-- UART
-		UART_TXD    :   OUT STD_LOGIC;
-		UART_RXD    :   IN STD_LOGIC;
+		UART_TX     :   OUT STD_LOGIC;
+		UART_RX     :   IN STD_LOGIC;
 		SPI_DO		:	 OUT STD_LOGIC;
 --		SPI_SD_DI	:	 IN STD_LOGIC;
 		SPI_DI		:	 IN STD_LOGIC;
@@ -157,8 +157,8 @@ COMPONENT  SVI328
 		VGA_B		:	 OUT STD_LOGIC_VECTOR(5 DOWNTO 0);
 		AUDIO_L  : out std_logic;
 		AUDIO_R  : out std_logic;
-		DAC_L           : OUT SIGNED(9 DOWNTO 0);
-      DAC_R           : OUT SIGNED(9 DOWNTO 0)
+		DAC_L           : OUT SIGNED(15 DOWNTO 0);
+        DAC_R           : OUT SIGNED(15 DOWNTO 0)
 	);
 END COMPONENT;
 
@@ -193,8 +193,8 @@ end component;
 
 
 -- DAC
-signal dac_l: signed(9 downto 0);
-signal dac_r: signed(9 downto 0);
+signal dac_l: signed(15 downto 0);
+signal dac_r: signed(15 downto 0);
         
 signal dac_l_s: signed(15 downto 0);
 signal dac_r_s: signed(15 downto 0);
@@ -282,8 +282,8 @@ i2s_transmitter_inst : i2s_transmitter
 		i2s_d_o => i2sD
 	);
 
-dac_l_s <= ('0' & dac_l & "00000");
-dac_r_s <= ('0' & dac_r & "00000");
+dac_l_s <= DAC_L;
+dac_r_s <= DAC_R;
 
 
 guest: COMPONENT  SVI328
@@ -304,8 +304,8 @@ guest: COMPONENT  SVI328
 		SDRAM_CLK => DRAM_CLK,
 		SDRAM_CKE => DRAM_CKE,
 		
-		UART_TXD  => UART_TXD,
-		UART_RXD  => UART_RXD,
+		UART_TX  => UART_TXD,
+		UART_RX  => UART_RXD,
 		
 --		SPI_SD_DI => sd_miso,
 		SPI_DO => spi_fromguest,
@@ -325,7 +325,7 @@ guest: COMPONENT  SVI328
 		AUDIO_L => sigma_l,
 		AUDIO_R => sigma_r,
 		DAC_L   => dac_l,
-      DAC_R   => dac_r
+        DAC_R   => dac_r
 
 );
 
