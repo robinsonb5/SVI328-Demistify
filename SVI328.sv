@@ -35,6 +35,7 @@
 //Z80 - 3,579545
 //AY - 1,789772
 
+`default_nettype none
 
 
 module SVI328
@@ -103,6 +104,7 @@ pll pll
 (
 	.inclk0(CLOCK_27),
 	.c0(clk_sys),
+	.c1(SDRAM_CLK),
 	.locked(pll_locked)
 );
 
@@ -208,36 +210,66 @@ spram #(14) vram
 );
 
 
-wire sdram_rdy;
-
 
 wire sdram_we,sdram_rd;
 wire [17:0] sdram_addr;
-wire  [7:0] sdram_din;
+reg  [7:0] sdram_din;
+wire [15:0] sdram_q;
+wire [1:0] sdram_ds;
 wire ioctl_isROM = (ioctl_index[5:0]<6'd2); //Index osd File is 0 (ROM) or 1(Rom Cartridge)
 
 
 assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
 assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
-assign sdram_din = (ioctl_wr && ioctl_isROM) ? ioctl_dout : ram_do;
+assign sdram_din = (ioctl_download && ioctl_isROM) ? ioctl_dout : ram_do;
 
 assign sdram_rd = ~(ram_rd_n | ram_ce_n);
-assign SDRAM_CLK = ~clk_sys;
+
+
+wire sdram_req;
+wire sdram_ack;
+reg sdram_ack_d;
+reg sdram_wren;
+always @(posedge clk_sys) begin
+	if(sdram_rd | sdram_we) begin
+		sdram_req <= ~sdram_ack_d;
+		sdram_wren <= sdram_we;
+	end	else
+		sdram_ack_d <= sdram_ack;
+end
+
+assign sdram_ds = {~sdram_addr[0],sdram_addr[0]};
+assign ram_di = sdram_addr[0] ? sdram_q[7:0] : sdram_q[15:8];
 sdram sdram
 (
-   .*,
-   .init(~pll_locked),
-   .clk(clk_sys),
+	.*,
+	.init_n(pll_locked),
+	.clk(clk_sys),
+	.clkref(1'b1),
 
-   .wtbt(0),
-   .addr(sdram_addr), 
-   .rd(sdram_rd),
-   .dout(ram_di),
-   .din(sdram_din),
-   .we(sdram_we), 
-   .ready(sdram_rdy)
+	.port1_req(sdram_req),
+	.port1_ack(sdram_ack),
+	.port1_we(sdram_wren),
+	.port1_a(sdram_addr),
+	.port1_ds(sdram_ds),
+	.port1_d({sdram_din,sdram_din}),
+	.port1_q(sdram_q),
+  
+	.port2_req(1'b0),
+	.port2_ack(),
+	.port2_we(),
+	.port2_a(),
+	.port2_ds(2'b00),
+	.port2_d(),
+	.port2_q(),
+//   .addr(sdram_addr), 
+//   .rd(sdram_rd),
+//   .dout(ram_di),
+//   .din(sdram_din),
+//   .we(sdram_we), 
+//   .ready(sdram_rdy)
 );
-
+assign SDRAM_CKE = 1'b1;
 
 wire [17:0] ram_a;
 wire isRam;
