@@ -94,10 +94,10 @@ parameter CONF_STR = {
 	"O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
 	"O6,Border,No,Yes;",
 	"O3,Joysticks swap,No,Yes;",
-`ifdef DEMISTIFY
-	"T0,Reset (Hold for hard reset);",
-`else
+`ifdef DEMISTIFY_HAVE_ARM
 	"T0,Reset;",
+`else
+	"T0,Reset (Hold for hard reset);",
 `endif
 	"V,v",`BUILD_DATE
 };

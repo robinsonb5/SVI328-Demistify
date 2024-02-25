@@ -39,7 +39,7 @@ module mist_top (
    output 	 SDRAM_CKE, // SDRAM Clock Enable
   
    // SPI interface to arm io controller
-   output 	 SPI_DO,
+   inout 	 SPI_DO,
    input 	 SPI_DI,
    input 	 SPI_SCK,
    input 	 SPI_SS2,
@@ -55,17 +55,17 @@ module mist_top (
    output [5:0]  VGA_R,
    output [5:0]  VGA_G,
    output [5:0]  VGA_B,
-   output [10:0] DAC_L,
-	output [10:0] DAC_R,
-	input      TAPE_IN,
 	
-   input     UART_RXD,
-   output    UART_TXD
+   input     UART_RX,
+   output    UART_TX
 );
 
 SVI328  guest
 (
-	.*
+	.*,
+	.DAC_L(),
+	.DAC_R(),
+	.TAPE_IN(1'b1)
 );
 
 endmodule
