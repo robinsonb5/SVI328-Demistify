@@ -7,6 +7,7 @@ create_generated_clock -name sdramclk -source ${topmodule}pll|altpll_component|a
 set_clock_groups -asynchronous -group [get_clocks $hostclk] -group [get_clocks $sysclk]
 set_clock_groups -asynchronous -group [get_clocks $supportclk] -group [get_clocks $sysclk]
 set_clock_groups -asynchronous -group [get_clocks spiclk] -group [get_clocks $sysclk]
+set_clock_groups -asynchronous -group [get_clocks spiclk] -group [get_clocks $hostclk]
 
 # Some relaxed constrain to the VGA pins. The signals should arrive together, the delay is not really important.
 set_output_delay -clock [get_clocks $sysclk] -max 0 [get_ports $VGA_OUT]

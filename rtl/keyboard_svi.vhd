@@ -35,7 +35,7 @@ begin
 
    latchInputs: process (clk, rst_n, keys)
 		variable ps2_press      : std_logic;
-		variable ps2_scancode   : std_logic_vector(7 downto 0);
+		variable ps2_scancode   : std_logic_vector(8 downto 0);
 
     begin
 
@@ -65,7 +65,7 @@ begin
 			
 	 		ps2_chg <= keys(10);
 			ps2_press := keys(9);
-			ps2_scancode := keys(7 downto 0);
+			ps2_scancode := keys(8 downto 0);
 		
             -- svi key matrix
 			if (ps2_chg /= keys(10)) then
@@ -138,8 +138,8 @@ begin
 						  when SCANCODE_RSHIFT    => svi_matrix(6)(0) <= ps2_press;
 
                     when SCANCODE_DOWN      => svi_matrix(7)(7) <= ps2_press; 
---                    when SCANCODE_UP        => svi_matrix(7)(6) <= ps2_press; -- CLS
-                    when SCANCODE_INS       => svi_matrix(7)(5) <= ps2_press;
+                    when SCANCODE_INS       => svi_matrix(7)(6) <= ps2_press; -- INSERT
+                    when SCANCODE_F9        => svi_matrix(7)(5) <= ps2_press; -- CLS
                     when SCANCODE_F5        => svi_matrix(7)(4) <= ps2_press;						  
                     when SCANCODE_F4        => svi_matrix(7)(3) <= ps2_press;
                     when SCANCODE_F3        => svi_matrix(7)(2) <= ps2_press;
@@ -149,31 +149,31 @@ begin
 
                     when SCANCODE_RIGHT     => svi_matrix(8)(7) <= ps2_press;
 --                    when SCANCODE_UP        => svi_matrix(8)(6) <= ps2_press;  -- NULL/VOID/VACIO/NADA
---                    when SCANCODE_RIGHT     => svi_matrix(8)(5) <= ps2_press;  -- PRINT
---                    when SCANCODE_M         => svi_matrix(8)(4) <= ps2_press;	-- SEL					  
+                    when SCANCODE_PRTSCRN   => svi_matrix(8)(5) <= ps2_press; -- PRINT
+                    when SCANCODE_PAGEUP    => svi_matrix(8)(4) <= ps2_press;	-- SEL					  
                     when SCANCODE_CAPSLOCK  => svi_matrix(8)(3) <= ps2_press;
                     when SCANCODE_DELETE    => svi_matrix(8)(2) <= ps2_press;
                     when SCANCODE_TAB       => svi_matrix(8)(1) <= ps2_press;
                     when SCANCODE_SPACE     => svi_matrix(8)(0) <= ps2_press;
 
                     when SCANCODE_PAD7      => svi_matrix(9)(7) <= ps2_press;
---                    when SCANCODE_PAD6      => svi_matrix(9)(6) <= ps2_press; -- OVerlaps
+                    when SCANCODE_PAD6      => svi_matrix(9)(6) <= ps2_press; -- OVerlaps
                     when SCANCODE_PAD5      => svi_matrix(9)(5) <= ps2_press;
---                    when SCANCODE_PAD4      => svi_matrix(9)(4) <= ps2_press;	-- OVerlaps					  
+                    when SCANCODE_PAD4      => svi_matrix(9)(4) <= ps2_press;	-- OVerlaps					  
                     when SCANCODE_PAD3      => svi_matrix(9)(3) <= ps2_press;
---                    when SCANCODE_PAD2      => svi_matrix(9)(2) <= ps2_press; -- OVerlaps
+                    when SCANCODE_PAD2      => svi_matrix(9)(2) <= ps2_press; -- OVerlaps
                     when SCANCODE_PAD1      => svi_matrix(9)(1) <= ps2_press;
---                    when SCANCODE_PAD0      => svi_matrix(9)(0) <= ps2_press; -- OVerlaps
+                    when SCANCODE_PAD0      => svi_matrix(9)(0) <= ps2_press; -- OVerlaps
 						  
 --TODO
---                    when SCANCODE_ESC       => svi_matrix(10)(7) <= ps2_press; -- NUM,
---                    when SCANCODE_UP        => svi_matrix(10)(6) <= ps2_press; -- NUM.
---                    when SCANCODE_RIGHT     => svi_matrix(10)(5) <= ps2_press; -- NUM/
+                    when SCANCODE_PAGEDOWN  => svi_matrix(10)(7) <= ps2_press; -- NUM ,
+                    when SCANCODE_PADPERIOD => svi_matrix(10)(6) <= ps2_press; -- NUM .
+                    when SCANCODE_PADDIVIDE => svi_matrix(10)(5) <= ps2_press; -- NUM /
                     when SCANCODE_PADTIMES  => svi_matrix(10)(4) <= ps2_press;						  
                     when SCANCODE_PADMINUS  => svi_matrix(10)(3) <= ps2_press;
                     when SCANCODE_PADPLUS   => svi_matrix(10)(2) <= ps2_press;
                     when SCANCODE_PAD9      => svi_matrix(10)(1) <= ps2_press;
---                    when SCANCODE_PAD8      => svi_matrix(10)(0) <= ps2_press; -- OVerlaps
+                    when SCANCODE_PAD8      => svi_matrix(10)(0) <= ps2_press; 
 
 						  
                     when others          => null;

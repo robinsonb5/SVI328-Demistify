@@ -42,7 +42,7 @@ module sdram (
 	input             port1_req,
 	output reg        port1_ack,
 	input             port1_we,
-	input      [23:1] port1_a,
+	input      [24:1] port1_a,
 	input       [1:0] port1_ds,
 	input      [15:0] port1_d,
 	output     [15:0] port1_q,
@@ -50,7 +50,7 @@ module sdram (
 	input             port2_req,
 	output reg        port2_ack,
 	input             port2_we,
-	input      [23:1] port2_a,
+	input      [24:1] port2_a,
 	input       [1:0] port2_ds,
 	input      [15:0] port2_d,
 	output     [15:0] port2_q
@@ -171,7 +171,7 @@ wire       need_refresh = (refresh_cnt >= RFRSH_CYCLES);
 always @(*) begin
 	if (port1_req ^ port1_state) begin
 		next_port[0] = PORT_REQ;
-		addr_latch_next[0] = { 1'b0, port1_a };
+		addr_latch_next[0] = port1_a;
 	end else begin
 		next_port[0] = PORT_NONE;
 		addr_latch_next[0] = addr_latch[0];
@@ -185,7 +185,7 @@ always @(*) begin
 		addr_latch_next[1] = addr_latch[1];
 	end else if (port2_req ^ port2_state) begin
 		next_port[1] = PORT_REQ;
-		addr_latch_next[1] = { 1'b1, port2_a };
+		addr_latch_next[1] = port2_a;
 	end else begin
 		next_port[1] = PORT_NONE;
 		addr_latch_next[1] = addr_latch[1];

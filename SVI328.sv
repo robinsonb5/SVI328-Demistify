@@ -86,12 +86,19 @@ parameter CONF_STR = {
 	"SVI328;;",
 	"F,BINROM,Load Cartridge;",
 	"F,CAS,Cas File;",
+`ifndef DEMISTIFY_NO_LINE_IN	
 	"OF,Tape Input,File,Line;",
+`endif
+	"OE,Tape Audio,Off,On;",
 	"TD,Tape Rewind;",
 	"O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
 	"O6,Border,No,Yes;",
 	"O3,Joysticks swap,No,Yes;",
+`ifdef DEMISTIFY
+	"T0,Reset (Hold for hard reset);",
+`else
 	"T0,Reset;",
+`endif
 	"V,v",`BUILD_DATE
 };
 
@@ -212,7 +219,7 @@ spram #(14) vram
 
 
 wire sdram_we,sdram_rd;
-wire [17:0] sdram_addr;
+wire [24:0] sdram_addr;
 reg  [7:0] sdram_din;
 wire [15:0] sdram_q;
 wire [1:0] sdram_ds;
@@ -220,11 +227,11 @@ wire ioctl_isROM = (ioctl_index[5:0]<6'd2); //Index osd File is 0 (ROM) or 1(Rom
 
 
 assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
-assign sdram_addr = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
+assign sdram_addr[22:0] = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
+assign sdram_addr[24] = 1'b0;
 assign sdram_din = (ioctl_download && ioctl_isROM) ? ioctl_dout : ram_do;
 
 assign sdram_rd = ~(ram_rd_n | ram_ce_n);
-
 
 wire sdram_req;
 wire sdram_ack;
@@ -240,36 +247,6 @@ end
 
 assign sdram_ds = {~sdram_addr[0],sdram_addr[0]};
 assign ram_di = sdram_addr[0] ? sdram_q[7:0] : sdram_q[15:8];
-sdram sdram
-(
-	.*,
-	.init_n(pll_locked),
-	.clk(clk_sys),
-	.clkref(1'b1),
-
-	.port1_req(sdram_req),
-	.port1_ack(sdram_ack),
-	.port1_we(sdram_wren),
-	.port1_a(sdram_addr),
-	.port1_ds(sdram_ds),
-	.port1_d({sdram_din,sdram_din}),
-	.port1_q(sdram_q),
-  
-	.port2_req(1'b0),
-	.port2_ack(),
-	.port2_we(),
-	.port2_a(),
-	.port2_ds(2'b00),
-	.port2_d(),
-	.port2_q(),
-//   .addr(sdram_addr), 
-//   .rd(sdram_rd),
-//   .dout(ram_di),
-//   .din(sdram_din),
-//   .we(sdram_we), 
-//   .ready(sdram_rdy)
-);
-assign SDRAM_CKE = 1'b1;
 
 wire [17:0] ram_a;
 wire isRam;
@@ -288,11 +265,25 @@ svi_mapper RamMapper
 ////////////////  Console  ////////////////////////
 
 wire [9:0] audio;
+wire tape_audio_on = status[14];
+wire tape_audio = (~CAS_dout) & tape_audio_on;
+
+reg [15:0] audiomix;
+
+wire [10:0] audiosum;
+always @(posedge clk_sys) begin
+	if(audiosum[10])
+		audiomix <= 16'hffff;
+	else
+		audiomix <= {audiosum[9:0],6'b0};
+	audiosum <= audio+{4'b0000,{6{tape_audio}}};
+end
+
 
 dac #(16) dac_l (
    .clk_i        (clk_sys),
    .res_n_i      (1      ),
-   .dac_i        ({audio,6'b0}),
+   .dac_i        (audiomix),
    .dac_o        (AUDIO_L)
 );
 
@@ -414,28 +405,61 @@ wire [25:0] CAS_addr;
 wire [7:0] CAS_di;
 
 wire [25:0] CAS_ram_addr;
+reg  [17:0] CAS_end_addr;
 wire CAS_ram_wren, CAS_ram_cs;
 wire ioctl_isCAS = (ioctl_index[5:0] == 6'd2);
-
-assign CAS_ram_cs = 1'b1;
-assign CAS_ram_addr = (ioctl_download && ioctl_isCAS) ? ioctl_addr[17:0] : CAS_addr;
-assign CAS_ram_wren = ioctl_wr && ioctl_isCAS; 
-
-//17 128
-//18 256
-spram #(16) CAS_ram
-(
-	.clock(clk_sys),
-	.cs(CAS_ram_cs),
-	.address(CAS_ram_addr),	
-	.wren(CAS_ram_wren), 
-	.data(ioctl_dout),
-	.q(CAS_di)
-);
 
 
 assign play = ~motor;
 assign rewind = status[13] | (ioctl_download && ioctl_isCAS) | reset; //status[13];
+
+wire CAS_ack;
+wire CAS_dl;
+reg CAS_wreq;
+wire [1:0] CAS_ds;
+wire [15:0] CAS_q;
+
+assign CAS_dl=(ioctl_download && ioctl_isCAS);
+assign CAS_ds = {~CAS_ram_addr[0],CAS_ram_addr[0]};
+assign CAS_di = CAS_ram_addr[0] ? CAS_q[7:0] : CAS_q[15:8];
+
+assign CAS_ram_cs = 1'b1;
+assign CAS_ram_addr[22:0] = CAS_dl ? ioctl_addr[17:0] : CAS_addr;
+assign CAS_ram_addr[24:23] = 2'b11;
+assign CAS_ram_wren = ioctl_wr && ioctl_isCAS; 
+
+always @(posedge clk_sys) begin
+	if(CAS_ram_wren) begin
+		CAS_wreq<=~CAS_ack;
+		CAS_end_addr <= ioctl_addr;
+	end
+end
+
+
+sdram sdram
+(
+	.*,
+	.init_n(pll_locked),
+	.clk(clk_sys),
+	.clkref(1'b1),
+
+	.port1_req(sdram_req),
+	.port1_ack(sdram_ack),
+	.port1_we(sdram_wren),
+	.port1_a(sdram_addr),
+	.port1_ds(sdram_ds),
+	.port1_d({sdram_din,sdram_din}),
+	.port1_q(sdram_q),
+  
+	.port2_req(CAS_dl ? CAS_wreq : CAS_rd),
+	.port2_ack(CAS_ack),
+	.port2_we(CAS_dl),
+	.port2_a(CAS_ram_addr),
+	.port2_ds(CAS_ds),
+	.port2_d({ioctl_dout,ioctl_dout}),
+	.port2_q(CAS_q)
+);
+assign SDRAM_CKE = 1'b1;
 
 
 cassette CASReader(
@@ -444,10 +468,11 @@ cassette CASReader(
   .Q(ce_21m3), //  42.666/2
   .play(play), 
   .rewind(rewind),
-
+  .end_addr(CAS_end_addr),
   .sdram_addr(CAS_addr),
   .sdram_data(CAS_di),
   .sdram_rd(CAS_rd),
+  .sdram_ack(CAS_ack),
 
   .data(CAS_dout),
   .status(CAS_status)

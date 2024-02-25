@@ -6,10 +6,11 @@ module cassette(
   input play,
   input rewind,
 
+  input [17:0] end_addr,
   output reg [24:0] sdram_addr,
   input [7:0] sdram_data,
-  output reg sdram_rd = 1'b0,
-
+  output sdram_rd = 1'b0,
+  input sdram_ack,
   output data,
   output [2:0] status
 
@@ -45,6 +46,8 @@ parameter
   READ4     = 3'h6;
 
 reg q_r;
+reg sdram_req;
+assign sdram_rd = sdram_req;
 always @(posedge clk) begin
   if (Q==1 && q_r ==0) begin
   ffplay <= play;
@@ -56,18 +59,18 @@ always @(posedge clk) begin
     end
     NEXT: begin
       state <= READ1;
-      sdram_rd <= 1'b0;
       svi_cnt <= 5'b0;
     end
     READ1: begin
-      sdram_rd <= 1'b1;
+      sdram_req <= ~sdram_ack;
       state <= READ2;
     end
     READ2: begin
       ibyte <= sdram_data;
-      sdram_rd <= 1'b0;
-      state <= READ3;
-      sq_start <= 1'b1;
+      if(sdram_ack==sdram_req) begin
+         state <= READ3;
+         sq_start <= 1'b1;
+	  end
     end
     READ3: begin
       sq_start <= 1'b0;
@@ -86,6 +89,7 @@ always @(posedge clk) begin
     end
   endcase
 
+  if (sdram_addr[17:0] >= end_addr) state <= IDLE;
   if (ffplay ^ play) state    <= play ? START : IDLE;
   if (ffplay ^ play) blk_addr <= 25'd0;
   
