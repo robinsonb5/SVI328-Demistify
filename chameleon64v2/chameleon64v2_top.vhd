@@ -428,6 +428,7 @@ begin
 	spi_fromguest <= spi_do;
 
 	led_red <= '1';
+	act_led <= '1';
 	
 	guest: COMPONENT SVI328
 	PORT map
@@ -496,7 +497,7 @@ begin
 		sysclk_frequency => 500,
 		debug => false,
 		SPI_FASTBIT => 0, -- Reducing this will make SPI comms faster, for cores which are clocked fast enough.
-		SPI_INTERNALBIT => 0, -- This will make SPI comms faster, for cores which are clocked fast enough.
+--		SPI_INTERNALBIT => 0, -- This will make SPI comms faster, for cores which are clocked fast enough.
 		jtag_uart => false
 	)
 	port map (

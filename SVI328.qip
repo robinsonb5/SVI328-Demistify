@@ -36,18 +36,20 @@ set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path)  rtl/keybo
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path)  rtl/ps2kbd_pkg.vhd]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path)  rtl/74ls74.vhd]
 
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_space.sv]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_mixer.sv]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_cleaner.sv]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/scandoubler.v]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/rgb2ypbpr.sv]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/osd.v]
-set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/mist_video.v]
+# set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_space.sv]
+# set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_mixer.sv]
+# set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/video_cleaner.sv]
+# set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/hq2x.sv]
+# set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/scandoubler.v]
+# set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/rgb2ypbpr.sv]
+# set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/osd.v]
+# set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/mist_video.v]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/mist_io.v]
-set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/hq2x.sv]
 set_global_assignment -name VERILOG_FILE [file join $::quartus(qip_path) sys/data_io.v]
 set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) sys/dac.vhd]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) sys/cofi.sv]
+
+set_global_assignment -name QIP_FILE [file join $::quartus(qip_path)  scandoubler.qip]
 
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path)  SVI328.sv]
 

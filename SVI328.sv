@@ -91,7 +91,7 @@ parameter CONF_STR = {
 `endif
 	"OE,Tape Audio,Off,On;",
 	"TD,Tape Rewind;",
-	"O79,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
+	"O79,Scanlines,Off,25%,50%,75%;",
 	"O6,Border,No,Yes;",
 	"O3,Joysticks swap,No,Yes;",
 `ifdef DEMISTIFY_HAVE_ARM
@@ -354,38 +354,57 @@ cv_console console
 wire [2:0] scale = status[9:7];
 wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
 
-reg hs_o, vs_o;
-always @(posedge CLK_VIDEO) begin
-	hs_o <= ~hsync;
-	if(~hs_o & ~hsync) vs_o <= ~vsync;
-end
+// AMR - use standard video processing chain from MiST-modules.
+// (The previous video chain worked on all platforms except TC64v2,
+// where it obscured the right part of the screen with a vertical stripe.)
 
-video_mixer #(.LINE_LENGTH(290)) video_mixer
-(
-	.*,
 
-	.ce_pix(ce_5m3),
-   .ce_pix_actual(ce_5m3),
-   
+mist_video #(.OSD_AUTO_CE(1'b1), .SD_HCNT_WIDTH(10), .VIDEO_CLEANER(1'b1)) video
+ (
+	// master clock
+	// it should be 4x (or 2x) pixel clock for the scandoubler
+	.clk_sys(CLK_VIDEO),
+
+	// OSD SPI interface
+	.SPI_SCK(SPI_SCK),
+	.SPI_SS3(SPI_SS3),
+	.SPI_DI(SPI_DI),
+
+	// scanlines (00-none 01-25% 10-50% 11-75%)
+	.scanlines(status[8:7]),
+
+	// non-scandoubled pixel clock divider:
+	// 0 - clk_sys/4, 1 - clk_sys/2, 2 - clk_sys/3, 3 - clk_sys/4, etc
+	.ce_divider(3'd3),
+
+	// 0 = HVSync 31KHz, 1 = CSync 15KHz
 	.scandoubler_disable(forced_scandoubler),
-	.hq2x(scale==1),
-	.mono(0),
-	.scanlines(forced_scandoubler ? 2'b00 : {scale==3, scale==2}),
-   .ypbpr_full(0),
-   .line_start(0),
+	// YPbPr always uses composite sync
+	.ypbpr(ypbpr),
 
+	.rotate(0),
+
+	.blend(1'b0),
 
 	.R(R[7:2]),
 	.G(G[7:2]),
 	.B(B[7:2]),
 
-	// Positive pulses.
-	.HSync(hs_o),
-	.VSync(vs_o),
 	.HBlank(hblank),
-	.VBlank(vblank)
-);
+	.VBlank(vblank),
+	.HSync(hsync),
+	.VSync(vsync),
 
+	// MiST video output signals
+	.VGA_R(VGA_R),
+	.VGA_G(VGA_G),
+	.VGA_B(VGA_B),
+	.VGA_VS(VGA_VS),
+	.VGA_HS(VGA_HS),
+	.VGA_HB(),
+	.VGA_VB(),
+	.VGA_DE()
+);
 
 
 
