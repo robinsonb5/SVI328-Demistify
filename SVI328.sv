@@ -96,6 +96,7 @@ parameter CONF_STR = {
 	"O3,Joysticks swap,No,Yes;",
 `ifdef DEMISTIFY_HAVE_ARM
 	"T0,Reset;",
+	"T1,Hard reset;",
 `else
 	"T0,Reset (Hold for hard reset);",
 `endif
@@ -177,7 +178,35 @@ mist_io #(.STRLEN($size(CONF_STR)>>3),.PS2DIV(100)) mist_io
 
 /////////////////  RESET  /////////////////////////
 
-wire reset = status[0] | buttons[1] | (ioctl_download && ioctl_isROM);
+wire reset = status[0] | buttons[1] | (ioctl_download && ioctl_isROM) | in_hard_reset;
+
+wire hard_reset = status[1];
+reg [15:0] cleanup_addr = 16'd0;
+reg cleanup_we;
+wire in_hard_reset = |cleanup_addr;
+
+always @(posedge clk_sys) begin
+    reg hard_reset_last;
+    reg ce_last;
+    
+    hard_reset_last <= hard_reset;
+    ce_last <= ce_5m3;
+    if (~hard_reset_last & hard_reset) begin
+        cleanup_addr <= 16'hffff;
+        cleanup_we <= 1'b1;
+    end
+    else if (~ce_last & ce_5m3) begin
+        if (|cleanup_addr) begin
+            case (cleanup_we) 
+                1'b0: cleanup_we <= 1'b1;
+                1'b1: begin
+                    cleanup_we <= 1'b0;
+                    cleanup_addr <= cleanup_addr - 1'b1;
+                end
+            endcase
+        end
+    end
+end
 
 ////////////////  KeyBoard  ///////////////////////
 
@@ -226,10 +255,18 @@ wire [1:0] sdram_ds;
 wire ioctl_isROM = (ioctl_index[5:0]<6'd2); //Index osd File is 0 (ROM) or 1(Rom Cartridge)
 
 
-assign sdram_we = (ioctl_wr && ioctl_isROM) | ( isRam & ~(ram_we_n | ram_ce_n));
-assign sdram_addr[22:0] = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} : ram_a;
+assign sdram_we = (ioctl_wr && ioctl_isROM) | 
+                  (isRam & ~(ram_we_n | ram_ce_n)) | 
+                  (in_hard_reset & cleanup_we);
+
+assign sdram_addr[22:0] = (ioctl_download && ioctl_isROM) ? {ioctl_index[0],ioctl_addr[15:0]} :
+       in_hard_reset ? {1'b1, cleanup_addr} :
+       ram_a;
+
 assign sdram_addr[24] = 1'b0;
-assign sdram_din = (ioctl_download && ioctl_isROM) ? ioctl_dout : ram_do;
+assign sdram_din = (ioctl_download && ioctl_isROM) ? ioctl_dout : 
+    in_hard_reset ? 8'h00 :
+    ram_do;
 
 assign sdram_rd = ~(ram_rd_n | ram_ce_n);
 
